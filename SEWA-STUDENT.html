@@ -1,0 +1,758 @@
+
+<html lang="en">
+<head>
+<meta charset="utf-8"></meta>
+<meta content="width=device-width,initial-scale=1" name="viewport"></meta>
+<title>RRR Pro Mex — AI Voice Trainer (Full Advanced)</title>
+<meta content="RRR Pro Mex advanced in-browser AI Voice Trainer — rule engine, STT, TTS, IndexedDB storage, import/export, training mode." name="description"></meta>
+<style>
+  :root{
+    --bg1:#000, --brand:#ff0000;
+    --panel-bg:rgba(255,0,0,0.06);
+  }
+  html,body{height:100%;margin:0;font-family:Segoe UI, Roboto, system-ui, "Noto Sans", sans-serif;background:radial-gradient(circle at 20% 20%, #110000 0%, #000000 60%);color:#fff}
+  .wrap{max-width:1200px;margin:18px auto;padding:18px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand h1{margin:0;color:var(--brand);text-shadow:0 0 12px rgba(255,0,0,0.25);font-size:20px}
+  .grid{display:grid;grid-template-columns:360px 1fr;gap:16px;margin-top:18px}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,0,0,0.08);padding:12px;border-radius:12px}
+  button, input[type=file], select {background:var(--brand);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
+  button.small{padding:6px 8px;font-weight:600}
+  input[type=text], textarea, select{width:100%;padding:8px;border-radius:8px;border:none;background:#0b0b0b;color:#fff}
+  textarea{min-height:96px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .rule-list{max-height:420px;overflow:auto;margin-top:10px}
+  .rule-item{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);margin-bottom:8px;background:linear-gradient(90deg, rgba(255,0,0,0.03), transparent)}
+  .small{font-size:13px;color:#ddd}
+  .debug{background:#071010;padding:10px;border-radius:8px;border:1px dashed rgba(255,0,0,0.06);min-height:80px}
+  .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.03);font-size:12px}
+  .footer{margin-top:12px;color:#ccc;font-size:13px}
+  .flex{display:flex;gap:8px;align-items:center}
+  .switch label{cursor:pointer;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02)}
+  .hidden{display:none}
+  .top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .note{font-size:13px;color:#cfcfcf;margin-top:8px}
+  .hr{height:1px;background:rgba(255,255,255,0.03);margin:10px 0;border-radius:2px}
+  .muted{color:#aaa;font-size:12px}
+  .kbd{background:#111;padding:4px 6px;border-radius:6px;font-size:12px;border:1px solid rgba(255,255,255,0.03)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <h1>RRR Pro Mex — AI Voice Trainer (Full Advanced)</h1>
+      <div class="muted">Offline-first • IndexedDB • STT/TTS • Rule engine</div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT: Controls & Voice -->
+      <div>
+        <div class="panel">
+          <h3>🎤 Live Voice Controls</h3>
+          <div class="top-actions">
+            <button id="startBtn">Start Listening</button>
+            <button id="stopBtn">Stop</button>
+            <button id="trainBtn">Training Mode: OFF</button>
+            <button class="small" id="speakTest">Speak Test</button>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <label class="small">Mic Language (STT)</label>
+            <input id="micLang" type="text" value="en-US" />
+          </div>
+
+          <div style="margin-top: 10px;">
+            <label class="small">Voice Profile</label>
+            <select id="voiceSelect"></select>
+          </div>
+
+          <div class="flex" style="margin-top: 8px;">
+            <div style="flex: 1;">
+              <label class="small">Rate</label>
+              <input id="rate" max="2" min="0.5" step="0.05" type="range" value="1" />
+            </div>
+            <div style="width: 120px;">
+              <label class="small">Pitch</label>
+              <input id="pitch" max="2" min="0" step="0.05" type="range" value="1" />
+            </div>
+          </div>
+
+          <div class="flex" style="margin-top: 8px;">
+            <div style="flex: 1;">
+              <label class="small">Volume</label>
+              <input id="volume" max="1" min="0" step="0.05" type="range" value="1" />
+            </div>
+            <div style="width: 120px;">
+              <label class="small">Fallback Mode</label>
+              <select id="fallbackMode">
+                <option value="text">Typed Input</option>
+                <option value="simulate">Simulate STT</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="note" id="micHint">Tip: Allow Microphone when browser asks. If nothing happens, use "Typed Input" fallback.</div>
+        </div>
+
+        <div class="panel" style="margin-top: 12px;">
+          <h3>🧭 Import / Export / Reset</h3>
+          <div class="controls">
+            <button id="exportRules">Export Rules (JSON)</button>
+            <button id="exportAll">Export Full (JSON)</button>
+            <input accept="application/json" id="fileInput" type="file" />
+            <button id="importAll">Import &amp; Restore</button>
+          </div>
+
+          <div class="hr"></div>
+
+          <h4 class="small">Selective Management</h4>
+          <div class="controls">
+            <button id="selectAllRules">Select All Rules</button>
+            <button id="deselectAllRules">Deselect All</button>
+            <button id="deleteSelected">Delete Selected</button>
+          </div>
+
+          <div class="hr"></div>
+
+          <h4 class="small">Reset</h4>
+          <div class="controls">
+            <button id="resetRules">Reset Rules</button>
+            <button id="resetAll">Factory Reset (All Data)</button>
+          </div>
+
+          <div class="note">Export before deleting. Imported JSON will restore by ID (overwrite if same id).</div>
+        </div>
+
+        <div class="panel" style="margin-top: 12px;">
+          <h3>🛠 Advanced Options</h3>
+          <div class="small">Matching mode:</div>
+          <div class="controls" style="margin-top: 8px;">
+            <label class="switch"><input checked="" name="match" type="radio" value="exact" /> <span class="tag">Exact</span></label>
+            <label class="switch"><input name="match" type="radio" value="substring" /> <span class="tag">Substring</span></label>
+            <label class="switch"><input name="match" type="radio" value="regex" /> <span class="tag">Regex</span></label>
+            <label class="switch"><input name="match" type="radio" value="fuzzy" /> <span class="tag">Fuzzy</span></label>
+          </div>
+
+          <div style="margin-top: 8px;">
+            <label class="small">Fuzzy threshold (0-1)</label>
+            <input id="fuzzyThreshold" max="1" min="0" step="0.01" type="number" value="0.75" />
+          </div>
+
+          <div class="small" style="margin-top: 8px;">Training: speak a phrase while Training Mode ON → it auto-fills rule pattern for you.</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Rule editor, console, memory -->
+      <div>
+        <div class="panel">
+          <h3>📚 Rules &amp; Responses</h3>
+
+          <div style="display: flex; gap: 8px;">
+            <input id="rulePattern" placeholder="Rule pattern (keyword / regex / phrase)" type="text" />
+            <select id="ruleType" style="width: 160px;">
+              <option value="keyword">Keyword</option>
+              <option value="regex">Regex</option>
+              <option value="intent">Intent</option>
+            </select>
+          </div>
+
+          <div style="margin-top: 8px;">
+            <textarea id="responseText" placeholder="Response text or multi-line script. Use {{user}}, {{last}}, {{count}} variables."></textarea>
+          </div>
+
+          <div class="controls" style="margin-top: 8px;">
+            <button id="addRule">Add / Update Rule</button>
+            <button class="small" id="clearRules">Clear All Rules</button>
+            <button class="small" id="bulkImport">Bulk Import (CSV paste)</button>
+          </div>
+
+          <div class="note" style="margin-top: 8px;">When editing a rule, the Add button updates the selected rule. Use the rule list below to edit or delete individually.</div>
+
+          <div class="rule-list" id="ruleList"></div>
+        </div>
+
+        <div class="panel" style="margin-top: 12px;">
+          <h3>🧪 Test Console</h3>
+          <div style="display: flex; gap: 8px;">
+            <input id="testInput" placeholder="Type a test phrase (or use voice)" type="text" />
+            <button id="runTest">Run</button>
+            <button class="small" id="clearConsole">Clear</button>
+          </div>
+
+          <div class="debug" id="consoleOut" style="margin-top: 10px;">Console output...</div>
+        </div>
+
+        <div class="panel" style="margin-top: 12px;">
+          <h3>🧾 Dialog Memory</h3>
+          <div class="small">Multi-turn state stored. Variables available in response templates: <span class="kbd">{{user}}</span>, <span class="kbd">{{last}}</span>, <span class="kbd">{{count}}</span></div>
+          <div class="debug" id="memoryView" style="margin-top: 8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">Notes: For mic/STT you must Allow Microphone in browser. If embedded in Blogger, ensure the page is HTTPS. If STT unavailable use typed input fallback. Ask me to add server-sync, embeddings, or Tamil NLU next.</div>
+  </div>
+
+<script>
+/*
+  RRR Pro Mex — Full Advanced AI Voice Trainer
+  Single-file implementation
+  - IndexedDB stores: rules (keyPath id), profiles (name), dialogs (id)
+  - STT: webkitSpeechRecognition or SpeechRecognition
+  - TTS: speechSynthesis voices
+  - Rule engine: exact / substring / regex / fuzzy (levenshtein)
+  - Export/Import/Restore support
+  - Select & delete rules, reset, factory reset
+  - Training mode: capture spoken phrase
+*/
+
+/* ------------------ Utilities & Storage (IndexedDB) ------------------ */
+const DB_NAME = 'rrr_pro_mex_trainer_v3';
+const DB_VERSION = 1;
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      db = e.target.result;
+      if (!db.objectStoreNames.contains('rules')) db.createObjectStore('rules', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('profiles')) db.createObjectStore('profiles', { keyPath: 'name' });
+      if (!db.objectStoreNames.contains('dialogs')) db.createObjectStore('dialogs', { keyPath: 'id' });
+    };
+    req.onsuccess = (e) => { db = e.target.result; resolve(db); };
+    req.onerror = (e) => { reject(e); };
+  });
+}
+
+function put(store, value) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite').objectStore(store).put(value);
+    tx.onsuccess = () => resolve(true);
+    tx.onerror = (e) => reject(e);
+  });
+}
+
+function getAll(store) {
+  return new Promise((resolve, reject) => {
+    const a = [];
+    const tx = db.transaction(store, 'readonly').objectStore(store).openCursor();
+    tx.onsuccess = (e) => {
+      const c = e.target.result;
+      if (c) { a.push(c.value); c.continue(); } else resolve(a);
+    };
+    tx.onerror = (e) => reject(e);
+  });
+}
+
+function getByKey(store, key) {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(store).objectStore(store).get(key);
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e);
+  });
+}
+
+function deleteKey(store, key) {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(store, 'readwrite').objectStore(store).delete(key);
+    req.onsuccess = () => resolve(true);
+    req.onerror = (e) => reject(e);
+  });
+}
+
+function clearStore(store) {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(store, 'readwrite').objectStore(store).clear();
+    req.onsuccess = () => resolve(true);
+    req.onerror = (e) => reject(e);
+  });
+}
+
+/* ------------------ Helpers ------------------ */
+function uid(prefix='id_') {
+  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+function escapeHtml(s='') {
+  return s.replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* Levenshtein for fuzzy matching */
+function levenshtein(a, b) {
+  if (!a || !b) return Math.max(a ? a.length : 0, b ? b.length : 0);
+  a = a.split(''); b = b.split('');
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, () => Array(n+1).fill(0));
+  for (let i=0;i<=m;i++) dp[i][0]=i;
+  for (let j=0;j<=n;j++) dp[0][j]=j;
+  for (let i=1;i<=m;i++){
+    for (let j=1;j<=n;j++){
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+    }
+  }
+  return dp[m][n];
+}
+function similarity(a,b) {
+  const d = levenshtein(a,b);
+  return 1 - (d / Math.max(a.length||1, b.length||1));
+}
+
+/* ------------------ In-memory caches ------------------ */
+let RULES_CACHE = []; // array of rule objects
+let DIALOGS_CACHE = {}; // map id -> dialog object
+let voices = [];
+
+/* ------------------ Voice (TTS) ------------------ */
+const synth = window.speechSynthesis || null;
+function populateVoices() {
+  if(!synth) return;
+  voices = synth.getVoices() || [];
+  const sel = document.getElementById('voiceSelect');
+  sel.innerHTML = '';
+  voices.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v.name;
+    o.textContent = `${v.name} — ${v.lang}` + (v.default ? ' (default)' : '');
+    sel.appendChild(o);
+  });
+  if(!sel.value && voices[0]) sel.value = voices[0].name;
+}
+if (synth) {
+  populateVoices();
+  if (typeof speechSynthesis !== 'undefined') speechSynthesis.onvoiceschanged = populateVoices;
+}
+
+function speak(text, opts={}) {
+  if (!synth) {
+    console.log('TTS unavailable.'); return;
+  }
+  try {
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const select = document.getElementById('voiceSelect');
+    const vname = select.value;
+    const v = voices.find(x => x.name === vname) || voices[0];
+    if (v) u.voice = v;
+    u.rate = parseFloat(document.getElementById('rate').value) || 1;
+    u.pitch = parseFloat(document.getElementById('pitch').value) || 1;
+    u.volume = parseFloat(document.getElementById('volume').value) || 1;
+    synth.speak(u);
+  } catch (e) {
+    console.error('TTS speak error', e);
+  }
+}
+
+/* ------------------ STT (Speech-to-text) ------------------ */
+let recognition = null;
+let listening = false;
+let lastHeard = '';
+function initSTT() {
+  const micLang = document.getElementById('micLang').value || 'en-US';
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  if (!SpeechRecognition) {
+    document.getElementById('micHint').innerText = 'STT not supported in this browser. Use Typed Input fallback.';
+    return;
+  }
+  try {
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = micLang;
+    recognition.onresult = (e) => {
+      const transcript = e.results[e.results.length-1][0].transcript.trim();
+      lastHeard = transcript;
+      onHeard(transcript);
+    };
+    recognition.onerror = (e) => { console.warn('STT error', e); };
+    recognition.onend = () => { listening = false; updateUI(); };
+    document.getElementById('micHint').innerText = 'STT available. Click Start Listening and Allow Microphone.';
+  } catch (e) {
+    console.warn('STT init failed', e);
+    document.getElementById('micHint').innerText = 'STT initialization failed. Use fallback Typed Input.';
+    recognition = null;
+  }
+}
+
+function startListening() {
+  if (!recognition) initSTT();
+  if (!recognition) {
+    document.getElementById('consoleOut').innerText = 'STT not available; using typed fallback.';
+    return;
+  }
+  try {
+    if (!listening) { recognition.start(); listening = true; updateUI(); document.getElementById('consoleOut').innerText = 'Listening...'; }
+  } catch (e) { console.warn('Start listen error', e); }
+}
+function stopListening() {
+  if (recognition && listening) { recognition.stop(); listening = false; updateUI(); document.getElementById('consoleOut').innerText = 'Stopped'; }
+}
+
+/* ------------------ Rule engine ------------------ */
+function matchInput(input, mode='substring', fuzzyThreshold=0.75) {
+  input = (input || '').toLowerCase();
+  let best = {score:0, rule:null};
+  for (const rule of RULES_CACHE) {
+    const pattern = (rule.pattern || '').toString();
+    if (mode === 'exact') {
+      if (input.trim() === pattern.trim().toLowerCase()) return {rule,score:1};
+    } else if (mode === 'substring') {
+      if (pattern && input.includes(pattern.toLowerCase())) return {rule,score:1};
+    } else if (mode === 'regex') {
+      try { const re = new RegExp(pattern, 'i'); if (re.test(input)) return {rule,score:1}; } catch(e) {}
+    } else if (mode === 'fuzzy') {
+      const sim = similarity(input, pattern.toLowerCase());
+      if (sim > best.score) best = {score:sim, rule};
+    }
+  }
+  if (mode === 'fuzzy' && best.score >= fuzzyThreshold) return best;
+  return {rule:null,score:0};
+}
+
+function renderResponse(template, context={}) {
+  if (!template) return '';
+  return template.replace(/{{\s*user\s*}}/gi, context.user || '')
+                 .replace(/{{\s*last\s*}}/gi, context.last || '')
+                 .replace(/{{\s*count\s*}}/gi, (context.count||0).toString());
+}
+
+/* ------------------ Dialog / Memory ------------------ */
+async function saveDialog(dialog) {
+  if (!dialog || !dialog.id) return;
+  await put('dialogs', dialog);
+  DIALOGS_CACHE[dialog.id] = dialog;
+}
+async function loadMemory() {
+  const arr = await getAll('dialogs');
+  DIALOGS_CACHE = {};
+  arr.forEach(d => DIALOGS_CACHE[d.id] = d);
+  renderMemory();
+}
+function renderMemory() {
+  const el = document.getElementById('memoryView');
+  el.innerHTML = '';
+  for (const id in DIALOGS_CACHE) {
+    const d = DIALOGS_CACHE[id];
+    const div = document.createElement('div');
+    div.style.marginBottom = '8px';
+    div.innerHTML = `<b>${escapeHtml(d.id)}</b> <div class="small">user: ${escapeHtml(d.user||'')}</div><div class="small">last: ${escapeHtml(d.last||'')}</div><div class="small">count: ${escapeHtml(String(d.count||0))}</div>`;
+    el.appendChild(div);
+  }
+}
+
+/* ------------------ UI Bindings & Rule List ------------------ */
+async function refreshRulesView() {
+  RULES_CACHE = await getAll('rules');
+  const container = document.getElementById('ruleList');
+  container.innerHTML = '';
+  RULES_CACHE.sort((a,b)=> (a.createdAt||0) - (b.createdAt||0)).forEach(r => {
+    const el = document.createElement('div');
+    el.className = 'rule-item';
+    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" class="rule-checkbox" data-id="${r.id}" />
+        <div>
+          <b>${escapeHtml(r.pattern)}</b>
+          <div class="small">type: ${r.type} • id: ${r.id}</div>
+        </div>
+      </div>
+      <div>
+        <button data-id="${r.id}" class="small editBtn">Edit</button>
+        <button data-id="${r.id}" class="small delBtn">Del</button>
+      </div>
+    </div>
+    <div style="margin-top:8px">${escapeHtml(r.response)}</div>`;
+    container.appendChild(el);
+  });
+
+  // attach events
+  container.querySelectorAll('.editBtn').forEach(b => b.onclick = async (e) => {
+    const id = b.dataset.id;
+    const rec = RULES_CACHE.find(x => x.id === id);
+    if (rec) {
+      document.getElementById('rulePattern').value = rec.pattern;
+      document.getElementById('responseText').value = rec.response;
+      document.getElementById('ruleType').value = rec.type;
+      document.getElementById('addRule').dataset.edit = rec.id;
+      document.getElementById('consoleOut').innerText = 'Editing rule: ' + rec.id;
+    }
+  });
+  container.querySelectorAll('.delBtn').forEach(b => b.onclick = async (e) => {
+    const id = b.dataset.id;
+    if (!confirm('Delete rule?')) return;
+    await deleteKey('rules', id); // fallback - will try custom delete below
+    // if deleteKey fails for some reason, fallback to objectStore delete
+    try { await deleteRuleDirect(id); } catch(e){}
+    await refreshRulesView();
+  });
+
+  // selective buttons binding (only once)
+  if (!document.getElementById('selectAllRules').dataset.bound) {
+    document.getElementById('selectAllRules').onclick = ()=>{ document.querySelectorAll('.rule-checkbox').forEach(cb => cb.checked = true); };
+    document.getElementById('deselectAllRules').onclick = ()=>{ document.querySelectorAll('.rule-checkbox').forEach(cb => cb.checked = false); };
+    document.getElementById('deleteSelected').onclick = async ()=> {
+      const checked = Array.from(document.querySelectorAll('.rule-checkbox:checked')).map(c=>c.dataset.id);
+      if (checked.length === 0) return alert('No rules selected');
+      if (!confirm('Delete '+checked.length+' selected rules? This cannot be undone.')) return;
+      for (const id of checked) {
+        try { await deleteRuleDirect(id); } catch(e){ console.warn('Delete failed for', id, e); }
+      }
+      await refreshRulesView();
+      alert('Selected rules deleted');
+    };
+    document.getElementById('selectAllRules').dataset.bound = '1';
+  }
+}
+
+/* direct delete helper */
+function deleteRuleDirect(id) {
+  return new Promise((resolve, reject) => {
+    try {
+      const t = db.transaction('rules', 'readwrite').objectStore('rules').delete(id);
+      t.onsuccess = ()=> resolve(true);
+      t.onerror = (e)=> reject(e);
+    } catch(e) { reject(e); }
+  });
+}
+
+/* ------------------ Input handling / main flow ------------------ */
+let trainingMode = false;
+
+async function onHeard(text) {
+  document.getElementById('consoleOut').innerText = 'Heard: ' + text;
+  const mode = document.querySelector('input[name=match]:checked').value;
+  const fuzzyThreshold = parseFloat(document.getElementById('fuzzyThreshold').value) || 0.75;
+
+  if (trainingMode) {
+    // capture phrase into rulePattern for quick training
+    document.getElementById('rulePattern').value = text;
+    document.getElementById('responseText').focus();
+    document.getElementById('consoleOut').innerText = 'Captured phrase for training: "'+text+'". Type response and click Add.';
+    speak('Captured. Please type the response and click Add rule.');
+    return;
+  }
+
+  const res = matchInput(text, mode, fuzzyThreshold);
+  if (res.rule) {
+    const rule = res.rule;
+    const sessionId = 'session_default';
+    const existing = DIALOGS_CACHE[sessionId] || {id:sessionId, user:'', last:'', count:0};
+    existing.user = text;
+    existing.last = renderResponse(rule.response || '', {user:text, last: existing.last || '', count: existing.count || 0});
+    existing.count = (existing.count || 0) + 1;
+    DIALOGS_CACHE[sessionId] = existing;
+    await saveDialog(existing);
+    renderMemory();
+    document.getElementById('consoleOut').innerText = 'AI: ' + existing.last;
+    speak(existing.last);
+  } else {
+    document.getElementById('consoleOut').innerText = 'No rule matched. Try Training Mode to teach me.';
+    speak('Sorry, I did not understand. You can teach me by turning on training mode.');
+  }
+}
+
+/* ------------------ Add / update rule ------------------ */
+document.addEventListener('DOMContentLoaded', async () => {
+  // Ensure DB ready
+  await openDB();
+  // populate initial voice list
+  populateVoices();
+  // load caches
+  await refreshRulesView();
+  await loadMemory();
+  // init STT
+  initSTT();
+
+  // UI element refs
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const trainBtn = document.getElementById('trainBtn');
+  const speakTest = document.getElementById('speakTest');
+  const addRuleBtn = document.getElementById('addRule');
+  const clearRulesBtn = document.getElementById('clearRules');
+  const runTestBtn = document.getElementById('runTest');
+  const testInput = document.getElementById('testInput');
+  const exportRulesBtn = document.getElementById('exportRules');
+  const exportAllBtn = document.getElementById('exportAll');
+  const fileInput = document.getElementById('fileInput');
+  const importAllBtn = document.getElementById('importAll');
+  const bulkImportBtn = document.getElementById('bulkImport');
+  const resetRulesBtn = document.getElementById('resetRules');
+  const resetAllBtn = document.getElementById('resetAll');
+
+  // Start/Stop
+  startBtn.onclick = () => {
+    const fallback = document.getElementById('fallbackMode').value;
+    if (fallback === 'text' && !recognition) {
+      document.getElementById('consoleOut').innerText = 'STT not available. Use typed input or change fallback.';
+      return;
+    }
+    startListening();
+  };
+  stopBtn.onclick = () => { stopListening(); };
+
+  // Training mode
+  trainBtn.onclick = () => {
+    trainingMode = !trainingMode;
+    trainBtn.innerText = trainingMode ? 'Training Mode: ON' : 'Training Mode: OFF';
+    document.getElementById('consoleOut').innerText = trainingMode ? 'Training ON — speak a phrase to capture.' : 'Training OFF';
+  };
+
+  // speak test
+  speakTest.onclick = () => {
+    const t = document.getElementById('testInput').value || 'Hello, this is a test.';
+    speak(t);
+  };
+
+  // Add/update rule
+  addRuleBtn.onclick = async () => {
+    const patt = document.getElementById('rulePattern').value.trim();
+    const resp = document.getElementById('responseText').value.trim();
+    const type = document.getElementById('ruleType').value || 'keyword';
+    if (!patt) return alert('Enter a rule pattern');
+    const edit = addRuleBtn.dataset.edit;
+    const id = edit || uid('rule_');
+    const payload = { id, pattern: patt, response: resp, type, createdAt: Date.now() };
+    await put('rules', payload);
+    addRuleBtn.dataset.edit = '';
+    document.getElementById('rulePattern').value = '';
+    document.getElementById('responseText').value = '';
+    await refreshRulesView();
+    document.getElementById('consoleOut').innerText = 'Rule saved: ' + id;
+  };
+
+  // Clear all rules (confirmation)
+  clearRulesBtn.onclick = async () => {
+    if (!confirm('Clear ALL rules? This will permanently delete all rules.')) return;
+    await clearStore('rules');
+    await refreshRulesView();
+    document.getElementById('consoleOut').innerText = 'All rules cleared.';
+  };
+
+  // Run test
+  runTestBtn.onclick = async () => {
+    const t = testInput.value.trim();
+    if (!t) return alert('Type a test phrase first.');
+    await onHeard(t);
+  };
+
+  // Export rules only
+  exportRulesBtn.onclick = async () => {
+    const rules = await getAll('rules');
+    const blob = new Blob([JSON.stringify({meta:{type:'rules', exportedAt:new Date().toISOString()}, rules}, null, 2)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'rrr_rules_' + Date.now() + '.json'; a.click();
+  };
+
+  // Export full dataset
+  exportAllBtn.onclick = async () => {
+    const rules = await getAll('rules');
+    const profiles = await getAll('profiles');
+    const dialogs = await getAll('dialogs');
+    const out = { meta:{type:'full', exportedAt:new Date().toISOString()}, rules, profiles, dialogs };
+    const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'rrr_pro_mex_export_' + Date.now() + '.json'; a.click();
+  };
+
+  // Import & Restore
+  importAllBtn.onclick = async () => {
+    const file = fileInput.files[0];
+    if (!file) return alert('Choose a JSON file to import');
+    let txt = '';
+    try { txt = await file.text(); } catch (e) { return alert('Failed to read file: ' + e.message); }
+    let data = null;
+    try { data = JSON.parse(txt); } catch (e) { return alert('Invalid JSON: ' + e.message); }
+    // if it's rules-only or full
+    if (data.rules) {
+      for (const r of data.rules) { r.createdAt = r.createdAt || Date.now(); await put('rules', r); }
+    }
+    if (data.profiles) {
+      for (const p of data.profiles) await put('profiles', p);
+    }
+    if (data.dialogs) {
+      for (const d of data.dialogs) await put('dialogs', d);
+    }
+    await refreshRulesView();
+    await loadMemory();
+    alert('Import & restore complete');
+  };
+
+  // Bulk import (CSV paste)
+  bulkImportBtn.onclick = async () => {
+    const csv = prompt('Paste CSV rows: pattern,response (one per line). Commas in response will be kept after first comma.');
+    if (!csv) return;
+    const lines = csv.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    for (const ln of lines) {
+      const idx = ln.indexOf(',');
+      const p = idx >= 0 ? ln.slice(0, idx) : ln;
+      const r = idx >= 0 ? ln.slice(idx+1) : '';
+      const payload = { id: uid('rule_'), pattern: p.trim(), response: r.trim(), type: 'keyword', createdAt: Date.now() };
+      await put('rules', payload);
+    }
+    await refreshRulesView();
+    alert('Bulk import complete');
+  };
+
+  // Reset handlers
+  resetRulesBtn.onclick = async () => {
+    if (!confirm('Reset ALL rules? This will permanently DELETE all rules.')) return;
+    await clearStore('rules');
+    await refreshRulesView();
+    document.getElementById('consoleOut').innerText = 'All rules reset.';
+  };
+  resetAllBtn.onclick = async () => {
+    if (!confirm('Factory Reset: This will DELETE rules, profiles, and dialogs permanently. Proceed?')) return;
+    await clearStore('rules'); await clearStore('profiles'); await clearStore('dialogs');
+    await refreshRulesView(); await loadMemory();
+    document.getElementById('consoleOut').innerText = 'Factory reset complete.';
+  };
+
+  // Delete selected (also available via rule list bound earlier)
+  document.getElementById('deleteSelected').onclick = async () => {
+    const checked = Array.from(document.querySelectorAll('.rule-checkbox:checked')).map(c=>c.dataset.id);
+    if (checked.length === 0) return alert('No rules selected');
+    if (!confirm('Delete '+checked.length+' selected rules?')) return;
+    for (const id of checked) {
+      try { await deleteRuleDirect(id); } catch(e) { console.warn('Delete failed', id, e); }
+    }
+    await refreshRulesView();
+    alert('Deleted selected rules');
+  };
+
+  // Test input enter key
+  testInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); runTestBtn.click(); } });
+
+  // update fuzzy threshold on change - nothing else required
+  document.getElementById('fuzzyThreshold').addEventListener('change', ()=> {
+    document.getElementById('consoleOut').innerText = 'Fuzzy threshold set to ' + document.getElementById('fuzzyThreshold').value;
+  });
+
+  // initial console
+  document.getElementById('consoleOut').innerText = 'Ready. Load complete.';
+});
+
+/* ------------------ Fallback: typed input to training capture ------------------ */
+/* If STT not available, user can type into testInput and press Run to simulate onHeard() */
+
+/* ------------------ Additional helpers & safety ------------------ */
+/* Simple wrapper to avoid uncaught exceptions */
+window.addEventListener('error', (e) => {
+  console.error('Runtime error:', e.error || e.message);
+  const out = document.getElementById('consoleOut');
+  if (out) out.innerText = 'Runtime error: ' + (e.error ? e.error.message : e.message);
+});
+
+/* Keyboard shortcuts (optional) */
+window.addEventListener('keydown', (e) => {
+  // Ctrl+M toggle listening
+  if (e.ctrlKey && e.key.toLowerCase() === 'm') {
+    const b = document.getElementById('startBtn');
+    if (b) b.click();
+  }
+});
+
+/* End of script */
+</script>
+</body>
+</html>
